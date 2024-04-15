@@ -4,7 +4,7 @@
 #'
 #' @return a tibble.
 #'
-#' @examplesIf curl::has_internet() & RCurl::url.exists("https://zenodo.org/records/10959197", timeout.ms = 5000)
+#' @examplesIf identical(tolower(Sys.getenv("NOT_CRAN")), "true")
 #' # https://zenodo.org/records/10959197
 #' list_deposit(deposit_id = 10959197)
 #'
@@ -13,11 +13,11 @@ list_deposit <- function(deposit_id){
   # Assertions
   checkmate::assert_number(x = deposit_id)
 
-  # Check internet
-  if(!curl::has_internet()) cli::cli_abort("It appears that your local Internet connection is not working.")
-
-  # Check Zenodo
-  if(!RCurl::url.exists("https://zenodo.org/", timeout.ms = 5000)) stop("It appears that Zenodo is down.")
+  # Check internet and Zenodo access
+  if(check_internet() == FALSE){
+    cli::cli_inform("It appears that your local Internet connection is not working.")
+    return(NULL)
+  }
 
   # Base url
   base_url <- glue::glue("https://zenodo.org/api/deposit/depositions/{deposit_id}/files")

@@ -7,7 +7,7 @@
 #'
 #' @returns No return value. The function downloads files to the specified destination.
 #'
-#' @examplesIf curl::has_internet() & RCurl::url.exists("https://zenodo.org/records/10959197", timeout.ms = 5000)
+#' @examplesIf identical(tolower(Sys.getenv("NOT_CRAN")), "true")
 #' res <- list_deposit(deposit_id = 10959197)
 #' temp_dir <- tempdir()
 #' download_deposit(list_deposit = res, dest = temp_dir, quiet = FALSE)
@@ -21,12 +21,13 @@ download_deposit <- function(list_deposit, file_name = NULL, dest, quiet = FALSE
   checkmate::assert_choice(x = file_name, null.ok = TRUE, choices = list_deposit$filename)
   checkmate::assert_logical(x = quiet)
 
-  # Check internet
-  if(!curl::has_internet()) cli::cli_abort("It appears that your local Internet connection is not working.")
+  # Check internet and Zenodo access
+  if(check_internet() == FALSE){
+    cli::cli_alert("It appears that your local Internet connection is not working.")
+    return(NULL)
+  }
 
-  # Check Zenodo
-  if(!RCurl::url.exists("https://zenodo.org/", timeout.ms = 5000)) cli::cli_abort("It appears that Zenodo is down.")
-
+  # All files from deposit
   if(is.null(file_name)){
     for(f in 1:nrow(list_deposit)){
       url <- list_deposit[[f,"download"]]
@@ -41,7 +42,7 @@ download_deposit <- function(list_deposit, file_name = NULL, dest, quiet = FALSE
         cli::cli_abort("The file {list_deposit[[f,'filename']]} checksum is different from source. Try download again.")
       }
     }
-  } else {
+  } else { # A specific file
     file_row <- list_deposit[which(list_deposit$filename==file_name),]
     url <- file_row$download
 
